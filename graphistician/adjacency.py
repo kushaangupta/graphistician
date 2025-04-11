@@ -3,10 +3,11 @@ Super simple adjacency models. We either have a Bernoulli model
 with fixed probability or a beta-Bernoulli model.
 """
 import numpy as np
+import scipy
+import scipy.special
 from scipy.stats import beta
 
 from abstractions import AdjacencyDistribution
-from internals.utils import logistic
 
 from pybasicbayes.abstractions import GibbsSampling
 
@@ -215,7 +216,7 @@ class LatentDistanceAdjacencyDistribution(AdjacencyDistribution, GibbsSampling):
 
     @property
     def P(self):
-        P = logistic(self.D)
+        P = scipy.special.expit(self.D)
         return P
 
     def initialize_from_prior(self):
@@ -296,7 +297,7 @@ class LatentDistanceAdjacencyDistribution(AdjacencyDistribution, GibbsSampling):
         D += self.mu_0
         D += self.mu_self * np.eye(self.N+1)
 
-        P = logistic(D)
+        P = scipy.special.expit(D)
         Prow = P[-1,:]
         Pcol = P[:,-1]
 

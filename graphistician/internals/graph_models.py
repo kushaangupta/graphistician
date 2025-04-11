@@ -1,10 +1,12 @@
 """
 A few simple graph model classes that fall into the Aldous-Hoover framework.
 """
+from typing import Any, Callable, Optional
 
 import numpy as np
 from scipy.special import betaln, erf
 import copy
+
 
 from hips.inference.discrete_sample import discrete_sample
 from hips.inference.log_sum_exp_sample import log_sum_exp_sample
@@ -593,56 +595,82 @@ def fit_network(A, model, x0=None, N_iter=1000, callback=None, pause=False):
     
     return (f_trace, theta_trace, lp_trace)
 
-
-def geweke_test(N, model, N_iter=1000, callback=None, pause=False):
+def geweke_test(
+    N: int,
+    model: AldousHooverNetwork,
+    N_iter: int = 1000,
+    callback: Optional[Callable[[np.ndarray, list[Any], Any], None]] = None,
+    pause: bool = False
+) -> tuple[list[list[Any]], list[Any], np.ndarray]:
     """
-    Fit the parameters of the network model using MCMC.
-    """    
+    Run a Geweke-style test of MCMC convergence for a network model.
+
+    This function initializes the parameters and node features,
+    then iteratively performs Gibbs sampling steps to sample from 
+    the posterior distribution. On each iteration, it logs and stores 
+    the log probability of the current state.
+
+    Args:
+        N: Number of nodes in the network.
+        model: An instance of a class that inherits from AldousHooverNetwork 
+            and implements the necessary sampling methods.
+        N_iter: Number of MCMC iterations to perform.
+        callback: Optional function invoked each iteration with the current 
+            adjacency matrix, the list of features, and the global parameters.
+        pause: If True, wait for user input after each iteration.
+
+    Returns:
+        A tuple consisting of:
+            f_trace: A list of node-feature samples across iterations.
+            theta_trace: A list of parameter samples across iterations.
+            lp_trace: An array of recorded log probabilities across iterations.
+    """
     # If the initial features are not specified, start with a 
     # draw from the prior.
     theta0 = model.sample_theta()
-    
-    f0 = []
+    f0: List[Any] = []
     for n in np.arange(N):
         f0.append(model.sample_f(theta0))
-          
-    A0 = model.sample_A(f0, theta0)
 
-    print "Starting Gibbs sampler"    
-    f = copy.deepcopy(f0)
-    theta = copy.deepcopy(theta0)
-    A = np.copy(A0)
-    
-    lp_trace = np.zeros(N_iter)
-    f_trace = []
-    theta_trace = []
-    A_trace = []
-    for iter in np.arange(N_iter):
-        lp = model.logpr(A,f,theta)
-        lp_trace[iter] = lp
-        
-        print "Iteration %d. \tlog pr: %f" % (iter, lp_trace[iter])
-        
-        # Sample the model parameters theta
-        theta = model.sample_theta((A,f))
-        
+    A0: np.ndarray = model.sample_A(f0, theta0)
+
+    print("Starting Gibbs sampler")
+    f: List[Any] = copy.deepcopy(f0)
+    theta: Any = copy.deepcopy(theta0)
+    A: np.ndarray = np.copy(A0)
+
+    lp_trace: np.ndarray = np.zeros(N_iter)
+    f_trace: List[List[Any]] = []
+    theta_trace: List[Any] = []
+    A_trace: List[np.ndarray] = []
+
+    for it in np.arange(N_iter):
+        lp = model.logpr(A, f, theta)
+        lp_trace[it] = lp
+
+        print("Iteration {}. \tlog pr: {}".format(it, lp_trace[it]))
+
+        # Sample model parameters
+        theta = model.sample_theta((A, f))
+
         # Sample features f
         for n in np.arange(N):
-            f[n] = model.sample_f(theta, (n,A,f))
-        
-        # Sample a new graph A given the updated features
+            f[n] = model.sample_f(theta, (n, A, f))
+
+        # Sample a new adjacency matrix
         A = model.sample_A(f, theta)
-        
-        # If the user supplied a callback, call it now
+
+        # Optional callback
         if callback is not None:
             callback(A, f, theta)
-        
-        # Save a copy of the data
+
+        # Store samples
         theta_trace.append(copy.deepcopy(theta))
         f_trace.append(copy.deepcopy(f))
         A_trace.append(A.copy())
-        
+
+        # Optional pause
         if pause:
-            raw_input("Press enter to continue.")
-    
+            input("Press enter to continue.")
+
     return (f_trace, theta_trace, lp_trace)

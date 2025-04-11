@@ -1,12 +1,16 @@
 import abc
 
 import numpy as np
+import scipy
+
 from scipy.special import erf
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+
 from pybasicbayes.abstractions import GibbsSampling, MeanField
 import pypolyagamma as ppg
-from graphistician.internals.utils import sample_truncnorm, expected_truncnorm, normal_cdf, logistic
+
+from graphistician.internals.utils import sample_truncnorm, expected_truncnorm
 from graphistician.internals.distributions import ScalarGaussian, TruncatedScalarGaussian, Gaussian
 from graphistician.internals.weights import GaussianWeights
 
@@ -442,8 +446,8 @@ class _MeanFieldProbitEigenModel(_ProbitEigenmodelBase, MeanField):
         :return:
         """
         mu = self.mf_mu_Z
-        # return np.nan_to_num(np.log(1.0 - normal_cdf(0, mu=mu, sigma=1.0)))
-        return np.log(1.0 - normal_cdf(0, mu=mu, sigma=1.0))
+        # return np.nan_to_num(np.log(1.0 - scipy.stats.norm.cdf(0, mu=mu, sigma=1.0)))
+        return np.log(1.0 - scipy.stats.norm.cdf(0, mu=mu, sigma=1.0))
 
     def mf_expected_log_notp(self):
         """
@@ -451,19 +455,19 @@ class _MeanFieldProbitEigenModel(_ProbitEigenmodelBase, MeanField):
         :return:
         """
         mu = self.mf_mu_Z
-        return np.log(normal_cdf(0, mu=mu, sigma=1.0))
+        return np.log(scipy.stats.norm.cdf(0, mu=mu, sigma=1.0))
 
     def mf_expected_log_p_mc(self):
         N_samples = 100
         E_mu = self.mf_expected_mu()[None, :, :]
         std_mu = np.sqrt(self.mf_variance_mu()[None, :, :])
         mus = E_mu + std_mu * np.random.randn(N_samples, self.N, self.N)
-        # ps = 1.0 - normal_cdf(0, mu=mus, sigma=1.0)
+        # ps = 1.0 - scipy.stats.norm.cdf(0, mu=mus, sigma=1.0)
         # log_ps = np.log(ps)
         # log_notps = np.log(1-ps)
 
         # Approximate log(1-p) for p~= 1
-        u = normal_cdf(0, mu=mus, sigma=1.0)
+        u = scipy.stats.norm.cdf(0, mu=mus, sigma=1.0)
         log_ps = np.log1p(-u)
         log_notps = np.log1p(-1+u)
 
@@ -805,7 +809,7 @@ class _LogisticEigenmodelBase(_EigenmodelBase):
         """
         Compute the probability of each edge.
         """
-        P = logistic(self.Mu)
+        P = scipy.special.expit(self.Mu)
         # Clip P so that it is never exactly 1 or 0
         P = np.clip(P, 1e-16, 1-1e-16)
         return P
@@ -1161,7 +1165,7 @@ class _MeanFieldLogisticEigenModel(_LogisticEigenmodelBase, MeanField):
         Compute the expected log probability of a connection under Z
         :return:
         """
-        Ps = logistic(self.mf_sample_mus())
+        Ps = scipy.special.expit(self.mf_sample_mus())
         Ps = np.clip(Ps, 1e-16, 1-1e-16)
         return np.log(Ps).mean(0)
 
@@ -1170,7 +1174,7 @@ class _MeanFieldLogisticEigenModel(_LogisticEigenmodelBase, MeanField):
         Compute the expected log probability of a connection under Z
         :return:
         """
-        Ps = logistic(self.mf_sample_mus())
+        Ps = scipy.special.expit(self.mf_sample_mus())
         Ps = np.clip(Ps, 1e-16, 1-1e-16)
         return np.log(1-Ps).mean(0)
 

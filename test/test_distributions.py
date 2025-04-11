@@ -1,8 +1,9 @@
 import numpy as np
+import scipy
+
 from scipy.stats import truncnorm, norm
 
 from graphistician.internals.distributions import TruncatedScalarGaussian, ScalarGaussian
-from internals.utils import normal_cdf
 
 
 def test_truncated_scalar_gaussian_lb():
@@ -51,7 +52,7 @@ def test_truncated_gaussian_entropy(mu=0.0, sigma=1.0):
     using iterated expectations.
     :return:
     """
-    p  = 1.0 - normal_cdf(0, mu, sigma)
+    p  = 1.0 - scipy.stats.norm.cdf(0, mu, sigma)
     print "p:   ", p
 
     # Compute the entropy of the scalar Gaussian

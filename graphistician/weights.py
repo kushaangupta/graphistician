@@ -682,8 +682,7 @@ class LatentDistanceGaussianWeightDistribution(GaussianWeightDistribution, Gibbs
         Compute the prior probability of F, mu0, and lmbda
         """
         from graphistician.internals.utils import \
-            normal_inverse_wishart_log_prob, \
-            inverse_wishart_log_prob
+            normal_inverse_wishart_log_prob
         lp = 0
 
         # Log prior of F under spherical Gaussian prior
@@ -692,7 +691,11 @@ class LatentDistanceGaussianWeightDistribution(GaussianWeightDistribution, Gibbs
         lp += norm.logpdf(self.b, 0, 1)
         lp += norm.logpdf(self.L, 0, 1).sum()
 
-        lp += inverse_wishart_log_prob(self.cov)
+        lp += scipy.stas.invwishart.logpdf(
+            self.cov.sigma,
+            self.cov.nu_0,
+            self.cov.lmbda_0
+        )
         lp += normal_inverse_wishart_log_prob(self._self_gaussian)
 
         # Log prior of mu_0 and mu_self

@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.special import gammaln, psi
 
-from graphistician.internals.utils import normal_cdf, normal_pdf
-
 
 class Discrete(object):
     def __init__(self, p=0.5*np.ones(2)):
@@ -171,7 +169,7 @@ class TruncatedScalarGaussian:
         # Precompute the normalizers
         self.zlb = (self.lb-self.mu) / np.sqrt(self.sigmasq)
         self.zub = (self.ub-self.mu) / np.sqrt(self.sigmasq)
-        self.Z   = normal_cdf(self.zub) - normal_cdf(self.zlb)
+        self.Z   = scipy.stats.norm.cdf(self.zub) - scipy.stats.norm.cdf(self.zlb)
 
         # Make sure Z is at least epsilon
         # self.Z = np.clip(self.Z, 1e-32, 1.0)
@@ -194,12 +192,12 @@ class TruncatedScalarGaussian:
 
     def expected_x(self):
         return self.mu + \
-               np.sqrt(self.sigmasq) * (normal_pdf(self.zlb) - normal_pdf(self.zub))/self.Z
+               np.sqrt(self.sigmasq) * (scipy.stats.norm.pdf(self.zlb) - scipy.stats.norm.pdf(self.zub))/self.Z
 
     def variance_x(self):
-        trm1 = (np.nan_to_num(self.zlb) * normal_pdf(self.zlb) -
-                np.nan_to_num(self.zub) * normal_pdf(self.zub)) / self.Z
-        trm2 = ((normal_pdf(self.zlb) - normal_pdf(self.zub)) / self.Z)**2
+        trm1 = (np.nan_to_num(self.zlb) * scipy.stats.norm.pdf(self.zlb) -
+                np.nan_to_num(self.zub) * scipy.stats.norm.pdf(self.zub)) / self.Z
+        trm2 = ((scipy.stats.norm.pdf(self.zlb) - scipy.stats.norm.pdf(self.zub)) / self.Z)**2
         return self.sigmasq * (1 + trm1 - trm2)
 
     def expected_xsq(self):
